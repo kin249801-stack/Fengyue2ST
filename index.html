@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fengyue2ST · 风月AI → SillyTavern 通用角色卡逆向转换器</title>
+<style>
+  :root {
+    --bg: #11111b;
+    --surface: #1e1e2e;
+    --card: #313244;
+    --line: #45475a;
+    --text: #cdd6f4;
+    --muted: #a6adc8;
+    --pink: #f5c2e7;
+    --mauve: #cba6f7;
+    --green: #a6e3a1;
+    --yellow: #f9e2af;
+    --red: #f38ba8;
+    --blue: #89b4fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 60px;
+    background: radial-gradient(ellipse at top, #31324455, transparent 60%), var(--bg);
+    color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+    line-height: 1.65;
+  }
+  .container { max-width: 1080px; margin: 0 auto; }
+  header {
+    text-align: center;
+    padding: 20px 0 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  header h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    background: linear-gradient(90deg, var(--pink), var(--mauve), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  .badge-bar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .badge {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--pink);
+  }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .panel h2 {
+    margin: 0 0 14px;
+    font-size: 17px;
+    color: var(--pink);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dropzone {
+    border: 2px dashed var(--mauve);
+    border-radius: 12px;
+    padding: 28px 20px;
+    text-align: center;
+    background: rgba(203, 166, 247, 0.05);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    background: rgba(203, 166, 247, 0.12);
+    border-color: var(--pink);
+  }
+  .dropzone input { display: none; }
+  textarea, input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 13px;
+  }
+  textarea:focus, input[type="text"]:focus {
+    outline: none;
+    border-color: var(--mauve);
+  }
+  .form-row { margin-bottom: 14px; }
+  .form-row label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+  .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 11px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: filter 0.15s, transform 0.1s;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: linear-gradient(135deg, var(--pink), var(--mauve)); color: #11111b; }
+  .btn-green { background: var(--green); color: #11111b; }
+  .btn-blue { background: var(--blue); color: #11111b; }
+  .btn-yellow { background: var(--yellow); color: #11111b; }
+  .stats-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .stats-list li {
+    background: var(--card);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .stats-list b { display: block; color: var(--green); font-size: 16px; }
+  .log-box {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 12px;
+    max-height: 220px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    color: var(--muted);
+  }
+  details.guide {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+  details.guide summary { cursor: pointer; font-weight: 700; color: var(--yellow); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>⚡ Fengyue2ST · 风月AI → 酒馆通用角色卡转换器</h1>
+    <p>纯前端零依赖 · 自动清洗转义 · 沙箱防崩修复 · 动态逆向推导世界书与正则</p>
+    <div class="badge-bar">
+      <span class="badge">✔ 支持 Chara Card V2 (.json / .png)</span>
+      <span class="badge">✔ 适配酒馆助手 (Tavern Helper)</span>
+      <span class="badge">✔ 自动修复 &#39; 语法崩溃 Bug</span>
+      <span class="badge">✔ 自动逆向提取前端数据库与世界书</span>
+    </div>
+  </header>
+
+  <details class="guide">
+    <summary>📖 抓包与转换三步曲（点击展开教程）</summary>
+    <ol style="font-size:13px; margin:10px 0 0; padding-left:20px;">
+      <li>在浏览器打开目标角色/大世界卡页面，按 <code>F12</code> 切换到 <b>Network（网络） -> Fetch/XHR</b>，按 <code>F5</code> 刷新网页。</li>
+      <li>在请求列表中找到以一串 UUID 命名的主数据包（如 <code>33153969-ed48-...</code>，体积通常几十 KB），右键选择 <b>Copy -> Copy response</b>（或全选复制 Response 内容）保存为 <code>.json</code> 或 <code>.txt</code>。</li>
+      <li>在下方上传或粘贴该 JSON 数据，工具将自动提取<b>开局前端 HTML、内置 CSS、正则渲染规则、快捷管理指令、Handlebars 状态模板与内置 NPC/DLC 数据</b>，一键打包为可直接导入 SillyTavern 的完整角色卡！</li>
+    </ol>
+  </details>
+
+  <div class="grid">
+    <div class="panel">
+      <h2><span>1. 导入抓包数据 (JSON / TXT)</span></h2>
+      <label class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept=".json,.txt">
+        <div style="font-size:32px; margin-bottom:8px;">📂</div>
+        <div style="font-weight:700; color:var(--pink);">点击选择文件 或 拖拽抓包 JSON/TXT 到此处</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">支持原始 Response JSON 或已导出的角色卡 JSON</div>
+      </label>
+      <div class="form-row" style="margin-top:14px;">
+        <label>或者直接在此处粘贴 F12 复制的 Response JSON 文本：</label>
+        <textarea id="rawJsonInput" rows="5" placeholder='粘贴 {"code": 100000, "msg": "ok", "data": { ... }} 内容...'></textarea>
+      </div>
+      <button type="button" class="btn btn-primary" id="parseBtn" style="width:100%;">🔍 解析并逆向扫描数据包</button>
+    </div>
+
+    <div class="panel">
+      <h2><span>2. 转换与沙箱修复选项</span></h2>
+      <div class="form-row">
+        <label>角色卡名称（自动识别，可手动修改）：</label>
+        <input type="text" id="cardName" placeholder="解析后自动填入...">
+      </div>
+      <div class="checkbox-group">
+        <label><input type="checkbox" id="optFixSyntax" checked> <b>强制修复 HTML 实体反转义崩溃</b>（将 <code>&amp;#39;</code> 转为 <code>\x26#39;</code>，防止滑块/表格/按钮暴毙）</label>
+        <label><input type="checkbox" id="optFixLayout" checked> <b>自动修复未闭合标签与未隐藏 Tab</b>（自动检测漏写 <code>hidden</code> 的面板与滑块样式）</label>
+        <label><input type="checkbox" id="optInjectDirectBtn" checked> <b>注入【酒馆助手一键直发开局】按钮</b>（自动探测生成框并绑定 <code>triggerSlash</code> 免复制发送）</label>
+        <label><input type="checkbox" id="optInlineCss" checked> <b>将全局 CSS 与快捷指令内嵌至首条正则</b>（自动将 <code>#customized-answer-content</code> 映射为 <code>.mes_text</code>）</label>
+        <label><input type="checkbox" id="optReversePrompt" checked> <b>当后台 Prompt 被脱敏为空时，自动根据正则与模板逆向生成 GM 系统提示词</b></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="resultPanel" style="display:none;">
+    <h2><span>3. 扫描报告与微调导出</span><span id="statusTag" style="font-size:13px; color:var(--green);"></span></h2>
+    <ul class="stats-list" id="statsList" style="margin-bottom:18px;"></ul>
+
+    <div class="grid">
+      <div class="form-row">
+        <label>🧠 主系统提示词 (Description / System Prompt，可自由增删)：</label>
+        <textarea id="outSystemPrompt" rows="10"></textarea>
+      </div>
+      <div class="form-row">
+        <label>🎨 开局第一句话 (First Message 前端代码预览)：</label>
+        <textarea id="outFirstMes" rows="10"></textarea>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>🛠️ 逆向解析与修复日志：</label>
+      <div class="log-box" id="logBox"></div>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
+      <button type="button" class="btn btn-green" id="dlCardJson">📥 下载酒馆 V2 角色卡 (.json)</button>
+      <button type="button" class="btn btn-blue" id="dlCardPng">🖼️ 合成并下载 PNG 角色卡图片 (.png)</button>
+      <button type="button" class="btn btn-yellow" id="dlPureHtml">🌐 单独下载修复后的纯享开局网页 (.html)</button>
+      <button type="button" class="btn" style="background:var(--card); color:var(--text);" id="dlWorldBook">📚 单独下载酒馆世界书 (.json)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+let currentCardV2 = null;
+let currentPureHtml = "";
+let currentCoverUrl = "";
+
+const $ = id => document.getElementById(id);
+function log(msg) {
+  const box = $("logBox");
+  box.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// 拖拽与文件读取
+const dropzone = $("dropzone");
+const fileInput = $("fileInput");
+dropzone.addEventListener("dragover", e => { e.preventDefault(); dropzone.classList.add("dragover"); });
+dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+dropzone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropzone.classList.remove("dragover");
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", e => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    $("rawJsonInput").value = ev.target.result;
+    parseAndBuild();
+  };
+  reader.readAsText(file);
+}
+
+$("parseBtn").addEventListener("click", parseAndBuild);
+
+// 通用 HTML/JS 沙箱修复器（解决任何风月前端卡在酒馆中的崩溃问题）
+function universalFixHtml(html, builtInCss, injectDirectBtn, fixSyntax, fixLayout) {
+  if (!html) return "";
+  let out = html.trim();
+  out = out.replace(/^```html\s*/i, "").replace(/\s*```$/i, "").trim();
+  const docIdx = out.search(/<!doctype html>|<html/i);
+  if (docIdx > 0) out = out.slice(docIdx);
+  out = out.replace(/<\/div>\s*$/i, "");
+
+  if (fixSyntax) {
+    out = out.replace(/&#39;/g, "\\x26#39;").replace(/&#x27;/gi, "\\x26#x27;");
+    out = out.replace(/\.updates&gt;summary/g, ".updates>summary");
+    log("已执行通用 AST 级实体保护：将所有内联 &#39; 转换为十六进制转义 \\x26#39;，防止 JS 引擎崩溃。");
+  }
+
+  if (fixLayout) {
+    let tabIndex = 0;
+    out = out.replace(/<section([^>]*role=["']tabpanel["'][^>]*)>/gi, (full, attrs) => {
+      tabIndex++;
+      if (tabIndex > 1 && !/\bhidden\b/i.test(attrs)) {
+        log(`检测到第 ${tabIndex} 个标签页 (${attrs.trim()}) 漏写 hidden 属性，已自动修补隐藏。`);
+        return `<section${attrs} hidden>`;
+      }
+      return full;
+    });
+
+    out = out.replace(
+      /(<section id="pane-5"[^>]*>\s*<div class="section-head">\s*<div>[\s\S]*?<\/div>)\s*(<\/section>)/i,
+      "$1</div>$2"
+    );
+
+    const ResetCss = `<style>
+      input[type=range] { display:block!important; width:100%!important; min-width:110px!important; height:28px!important; appearance:auto!important; -webkit-appearance:slider-horizontal!important; opacity:1!important; visibility:visible!important; }
+      button, select, input, textarea { pointer-events:auto!important; }
+    </style>`;
+    if (/<\/head>/i.test(out)) {
+      out = out.replace(/<\/head>/i, ResetCss + "\n</head>");
+    } else {
+      out = ResetCss + "\n" + out;
+    }
+  }
+
+  if (injectDirectBtn) {
+    const universalBridge = `
+<script>
+(function(){
+  function syncIframeHeight() {
+    try {
+      if (window.frameElement) {
+        const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, 760);
+        window.frameElement.style.height = (h + 32) + 'px';
+      }
+    } catch(e) {}
+  }
+  window.addEventListener('load', syncIframeHeight);
+  document.addEventListener('click', function(){ setTimeout(syncIframeHeight, 60); });
+  if (window.MutationObserver && document.body) {
+    new MutationObserver(syncIframeHeight).observe(document.body, { childList: true, subtree: true, attributes: true });
+  }
+
+  function mountUniversalSender() {
+    const copyBtn = document.getElementById('copy') || document.querySelector('[id*="copy"], [class*="copy"]');
+    const genBtn = document.getElementById('generate') || document.querySelector('[id*="gen"], [id*="build"]');
+    const resBox = document.getElementById('result') || document.querySelector('textarea[readonly], textarea.export-text, textarea');
+    if (!resBox) return;
+
+    const targetParent = (copyBtn && copyBtn.parentNode) || (genBtn && genBtn.parentNode) || resBox.parentNode;
+    if (!targetParent || document.getElementById('fy2st-direct-send')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'fy2st-direct-send';
+    btn.type = 'button';
+    btn.className = copyBtn ? copyBtn.className : 'btn';
+    btn.style.cssText = 'background:linear-gradient(135deg,#f3a1c5,#b087de)!important; color:#15121b!important; font-weight:900!important; border:none!important; padding:10px 18px!important; border-radius:8px!important; cursor:pointer!important; margin-right:8px!important;';
+    btn.innerHTML = '🚀 直接发送至酒馆开局（免复制）';
+    btn.onclick = function() {
+      if (genBtn) { try { genBtn.click(); } catch(e){} }
+      else if (typeof window.build === 'function') { try { window.build(); } catch(e){} }
+      setTimeout(function() {
+        const text = (resBox.value || resBox.textContent || '').trim();
+        if (!text) {
+          alert('请先完成必填项或点击生成按钮！');
+          return;
+        }
+        try {
+          if (typeof triggerSlash === 'function') {
+            triggerSlash('/send ' + JSON.stringify(text) + ' | /trigger');
+            return;
+          }
+          if (window.TavernHelper && typeof window.TavernHelper.triggerSlash === 'function') {
+            window.TavernHelper.triggerSlash('/send ' + JSON.stringify(text) + ' | /trigger');
+            return;
+          }
+          if (window.parent && typeof window.parent.triggerSlash === 'function') {
+            window.parent.triggerSlash('/send ' + JSON.stringify(text) + ' | /trigger');
+            return;
+          }
+          const pDoc = (window.parent && window.parent.document) || document;
+          const ta = pDoc.getElementById('send_textarea');
+          const sBtn = pDoc.getElementById('send_but');
+          if (ta && sBtn) {
+            ta.value = text;
+            ta.dispatchEvent(new Event('input', { bubbles: true }));
+            sBtn.click();
+            return;
+          }
+        } catch(err) { console.warn(err); }
+        navigator.clipboard.writeText(text);
+        alert('已自动生成并复制到剪贴板，请直接粘贴发送！');
+      }, 70);
+    };
+    targetParent.insertBefore(btn, copyBtn || targetParent.firstChild);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountUniversalSender);
+  } else {
+    mountUniversalSender();
+  }
+})();
+<\/script>`;
+    if (/<\/body>/i.test(out)) {
+      out = out.replace(/<\/body>/i, universalBridge + "\n</body>");
+    } else {
+      out += "\n" + universalBridge;
+    }
+    log("已注入通用酒馆助手一键开局直发桥接脚本 + Iframe 自适应高度引擎。");
+  }
+
+  return out;
+}
+
+function parseAndBuild() {
+  $("logBox").textContent = "";
+  const rawText = $("rawJsonInput").value.trim();
+  if (!rawText) {
+    alert("请先选择文件或粘贴抓包 JSON 内容！");
+    return;
+  }
+
+  try {
+    const root = JSON.parse(rawText);
+
+    if (root.spec === "chara_card_v2" && root.data) {
+      log("检测到输入文件已是酒馆 V2 角色卡格式，正在执行深度前端修复...");
+      const fixedMes = universalFixHtml(
+        root.data.first_mes,
+        "",
+        $("optInjectDirectBtn").checked,
+        $("optFixSyntax").checked,
+        $("optFixLayout").checked
+      );
+      currentPureHtml = fixedMes;
+      root.data.first_mes = "```html\n" + fixedMes + "\n```";
+      currentCardV2 = root;
+      $("cardName").value = root.data.name || "修复角色卡";
+      $("outSystemPrompt").value = root.data.description || "";
+      $("outFirstMes").value = root.data.first_mes;
+      renderReport(root);
+      return;
+    }
+
+    const dataNode = root.data || root;
+    const apps = dataNode.apps || dataNode.app || dataNode.character || dataNode;
+    const mc = dataNode.model_config || apps.model_config || root.model_config || {};
+
+    let detectedName = $("cardName").value.trim() || apps.name || apps.title || "";
+    if (!detectedName && apps.description) {
+      const titleMatch = apps.description.match(/<title>([^<·]+)/i) || apps.description.match(/<h1>([^<]+)<\/h1>/i);
+      if (titleMatch) detectedName = titleMatch[1].trim();
+    }
+    if (!detectedName) detectedName = "风月提取角色卡";
+    $("cardName").value = detectedName;
+    currentCoverUrl = apps.cover || apps.avatar || "";
+
+    const rawOpening = apps.opening_statement || (apps.opening_statements && apps.opening_statements[0]) || apps.description || "";
+    const summary = apps.summary || apps.intro || "";
+    const prePrompt = apps.pre_prompt || mc.pre_prompt || "";
+    const rawWorldBook = apps.world_book || mc.world_book || [];
+    const builtInCss = mc.built_in_css || apps.main_css || "";
+    const varTemplate = mc.ai_variable_template || apps.table_template || "";
+    const regexList = mc.regex_replaces || apps.regex_replaces || apps.replaces || [];
+    const shortcuts = mc.shortcut_commands || apps.shortcut_commands || [];
+
+    log(`成功识别数据包：「${detectedName}」`);
+
+    const worldEntries = [];
+    let uid = 1;
+    function pushEntry(comment, keys, content, constant = false, pos = 0, order = 50) {
+      if (!content || !content.trim()) return;
+      worldEntries.push({
+        id: uid++,
+        keys: keys,
+        secondary_keys: [],
+        comment: comment,
+        content: content.trim(),
+        constant: constant,
+        selective: false,
+        insertion_order: order,
+        enabled: true,
+        position: pos === 0 ? "before_char" : "after_char",
+        extensions: { position: pos, exclude_recursion: true, probability: 100, useProbability: true, depth: 4 }
+      });
+    }
+
+    if (Array.isArray(rawWorldBook) && rawWorldBook.length > 0) {
+      rawWorldBook.forEach((eb, i) => {
+        const k = Array.isArray(eb.keys) ? eb.keys : (eb.keyword ? [eb.keyword] : [detectedName]);
+        pushEntry(eb.comment || eb.title || `词条 #${i + 1}`, k, eb.content || eb.text || "", Boolean(eb.constant), 0, 10 + i);
+      });
+    }
+
+    if (summary) {
+      pushEntry(`🟢 世界观与作品核心简介`, [detectedName], `【作品简介与核心规则】\n${summary}`, true, 0, 10);
+    }
+
+    const mapCards = [...rawOpening.matchAll(/<article[^>]*class=["'][^"']*map-card[^"']*["'][^>]*>([\s\S]*?)<\/article>/gi)];
+    if (mapCards.length > 0) {
+      const mapTexts = mapCards.map(m => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+      pushEntry(`🟢 城市区域与地图治安设定`, ["地图", "区域", "治安"], `【区域与场景设定】\n- ` + mapTexts.join("\n- "), true, 0, 15);
+    }
+
+    const tplMatch = rawOpening.match(/DATA\.templates\s*=\s*(\[[\s\S]*?\]);/);
+    if (tplMatch) {
+      try {
+        const npcs = (new Function("return " + tplMatch[1]))();
+        npcs.forEach((n, idx) => {
+          const keys = [n.name, n.label].filter(Boolean);
+          const detail = Object.entries(n).map(([k, v]) => `${k}: ${v}`).join(" | ");
+          pushEntry(`🔵 预设NPC：${n.name || n.label}`, keys, `【预设固定NPC档案：${n.name || ""}（${n.label || ""}）】\n${detail}`, false, 0, 30 + idx);
+        });
+      } catch (e) {}
+    }
+
+    const dlcMatch = rawOpening.match(/var\s+DLC\s*=\s*(\[[\s\S]*?\]);/);
+    if (dlcMatch) {
+      try {
+        const dlcs = (new Function("return " + dlcMatch[1]))();
+        dlcs.forEach((d, idx) => {
+          const keys = [d.name, `DLC剧本开"${d.name}"`, d.id].filter(Boolean);
+          pushEntry(
+            `🟣 DLC扩展剧本：${d.name}`,
+            keys,
+            `【DLC实验剧本世界书：${d.name}】\n- 类型：${d.tier || ""} (${d.orig || ""})\n- 规则说明：${d.gender || ""} | ${d.note || ""}\n- 剧本背景：${d.intro || ""}\n- 专属身份池：${(d.ids || []).join("、")}`,
+            false, 0, 60 + idx
+          );
+        });
+      } catch (e) {}
+    }
+
+    if (shortcuts.length > 0) {
+      const cmdLines = shortcuts.map(s => `- 当玩家发送「${s.command_text}」（${s.label}）时：严格按照该管理指令执行。`).join("\n");
+      pushEntry(`🟡 快捷管理指令响应规范`, ["【管理指令】", "【管理：", "导出存档", "查看状态"], `【后台管理指令响应准则】\n${cmdLines}`, true, 1, 90);
+    }
+
+    let finalSystemPrompt = prePrompt;
+    if (!finalSystemPrompt && $("optReversePrompt").checked) {
+      let tagInstructions = "";
+      regexList.forEach((r, i) => {
+        tagInstructions += `${i + 1}. 【${r.title || "模块" + (i + 1)}】：必须匹配正则 \`${r.match_regex}\`\n`;
+      });
+      finalSystemPrompt = `你现在担任互动叙事游戏《${detectedName}》的专属 GM（游戏主持人）。\n请严格遵循玩家开局发送的档案设定与正则渲染标签格式：\n${tagInstructions}`;
+    }
+
+    const fixedOpeningHtml = universalFixHtml(
+      rawOpening,
+      builtInCss,
+      $("optInjectDirectBtn").checked,
+      $("optFixSyntax").checked,
+      $("optFixLayout").checked
+    );
+    currentPureHtml = fixedOpeningHtml;
+    const finalFirstMes = fixedOpeningHtml.includes("<") ? "```html\n" + fixedOpeningHtml + "\n```" : fixedOpeningHtml;
+
+    let panelCss = "";
+    const styleMatch = varTemplate.match(/<style>([\s\S]*?)<\/style>/i);
+    if (styleMatch) panelCss = styleMatch[1];
+
+    const cleanBuiltInCss = builtInCss.replace(/#customized-answer-content-markdown/g, ".mes_text").replace(/#customized-answer-content/g, ".mes_text").replace(/\r?\n/g, " ");
+    const cleanPanelCss = panelCss.replace(/\r?\n/g, " ");
+
+    const quickBarHtml = shortcuts.length > 0
+      ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px;">` +
+        shortcuts.map(s => {
+          const safeCmd = (s.command_text || "").replace(/"/g, "&quot;").replace(/'/g, "\\x26#39;");
+          return `<button type="button" onclick="(function(cmd){try{const d=window.parent.document,t=d.getElementById('send_textarea'),b=d.getElementById('send_but');if(t&&b){t.value=cmd;t.dispatchEvent(new Event('input',{bubbles:true}));b.click();return;}}catch(e){}navigator.clipboard.writeText(cmd);alert('已复制管理指令：'+cmd);})('${safeCmd}')" style="background:#382b43;color:#e5afd0;border:1px solid #76677d;border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">${s.label}</button>`;
+        }).join("") + `</div>`
+      : "";
+
+    const stRegexScripts = regexList.map((r, idx) => {
+      let rep = r.replace_text || "";
+      if (idx === 0 && $("optInlineCss").checked) {
+        rep = `<style>${cleanBuiltInCss} ${cleanPanelCss}</style>` + rep + quickBarHtml;
+      }
+      return {
+        id: `fy2st-regex-${idx + 1}`,
+        scriptName: r.title || `前端渲染正则 #${idx + 1}`,
+        findRegex: `/${r.match_regex}/gs`,
+        replaceString: rep,
+        trimStrings: [],
+        placement: [2],
+        disabled: false,
+        markdownOnly: true,
+        promptOnly: false,
+        runOnEdit: true,
+        substituteRegex: 0,
+        minDepth: null,
+        maxDepth: null
+      };
+    });
+
+    currentCardV2 = {
+      spec: "chara_card_v2",
+      spec_version: "2.0",
+      data: {
+        name: detectedName,
+        description: finalSystemPrompt,
+        personality: "沉浸、细腻、严格遵守前端HTML标签与世界书规则的GM",
+        scenario: summary.slice(0, 120),
+        first_mes: finalFirstMes,
+        mes_example: "",
+        creator_notes: "由 Fengyue2ST 通用逆向转换器自动生成",
+        system_prompt: "",
+        post_history_instructions: "【回复格式自检】请确保严格输出所有前端正则要求的 HTML 标签",
+        alternate_greetings: [],
+        character_book: {
+          name: `${detectedName}_内置世界书`,
+          description: "由 Fengyue2ST 自动提取合成",
+          scan_depth: 6,
+          token_budget: 4096,
+          recursive_scanning: false,
+          extensions: {},
+          entries: worldEntries
+        },
+        tags: ["Fengyue2ST", "前端卡"],
+        creator: "Fengyue2ST Converter",
+        character_version: "1.0-Universal",
+        extensions: {
+          regex_scripts: stRegexScripts
+        }
+      }
+    };
+
+    $("outSystemPrompt").value = currentCardV2.data.description;
+    $("outFirstMes").value = currentCardV2.data.first_mes;
+    renderReport(currentCardV2);
+
+  } catch (err) {
+    alert("解析失败，请确认输入的是合法的 JSON 数据！\n错误信息：" + err.message);
+  }
+}
+
+function renderReport(card) {
+  $("resultPanel").style.display = "block";
+  $("statusTag").textContent = "✅ 逆向合成与沙箱修复已完成";
+  const entriesCount = card.data.character_book?.entries?.length || 0;
+  const regexCount = card.data.extensions?.regex_scripts?.length || 0;
+  $("statsList").innerHTML = `
+    <li>卡片名称<b>${card.data.name}</b></li>
+    <li>开局前端体积<b>${(card.data.first_mes || "").length.toLocaleString()} 字符</b></li>
+    <li>内置世界书词条<b>${entriesCount} 条</b></li>
+    <li>绑定局部正则<b>${regexCount} 条</b></li>
+  `;
+}
+
+function syncEdits() {
+  if (!currentCardV2) return;
+  currentCardV2.data.name = $("cardName").value.trim() || currentCardV2.data.name;
+  currentCardV2.data.description = $("outSystemPrompt").value;
+  currentCardV2.data.first_mes = $("outFirstMes").value;
+}
+
+$("dlCardJson").addEventListener("click", () => {
+  syncEdits();
+  const blob = new Blob([JSON.stringify(currentCardV2, null, 2)], { type: "application/json;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentCardV2.data.name}_ST角色卡.json`;
+  a.click();
+});
+
+$("dlPureHtml").addEventListener("click", () => {
+  const blob = new Blob([currentPureHtml], { type: "text/html;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${$("cardName").value || "开局前端"}_独立离线版.html`;
+  a.click();
+});
+
+$("dlWorldBook").addEventListener("click", () => {
+  syncEdits();
+  const entriesObj = {};
+  (currentCardV2.data.character_book?.entries || []).forEach((e, idx) => {
+    entriesObj[idx] = {
+      uid: idx,
+      key: e.keys || [],
+      keysecondary: [],
+      comment: e.comment || "",
+      content: e.content || "",
+      constant: Boolean(e.constant),
+      selective: false,
+      order: e.insertion_order || 100,
+      position: e.position === "after_char" ? 1 : 0,
+      disable: false,
+      excludeRecursion: true,
+      probability: 100,
+      useProbability: true,
+      depth: 4
+    };
+  });
+  const blob = new Blob([JSON.stringify({ entries: entriesObj }, null, 2)], { type: "application/json;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentCardV2.data.name}_酒馆世界书.json`;
+  a.click();
+});
+
+function crc32(buf) {
+  let c = -1;
+  for (let i = 0; i < buf.length; i++) {
+    c = (c >>> 8) ^ crcTable[(c ^ buf[i]) & 0xff];
+  }
+  return (c ^ -1) >>> 0;
+}
+const crcTable = new Uint32Array(256);
+for (let n = 0; n < 256; n++) {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+  crcTable[n] = c >>> 0;
+}
+
+function writePngTextChunk(pngUint8, keyword, base64Text) {
+  const keyBytes = new TextEncoder().encode(keyword);
+  const textBytes = new TextEncoder().encode(base64Text);
+  const dataLen = keyBytes.length + 1 + textBytes.length;
+  const chunk = new Uint8Array(4 + 4 + dataLen + 4);
+  const view = new DataView(chunk.buffer);
+  view.setUint32(0, dataLen, false);
+  chunk[4] = 116; chunk[5] = 69; chunk[6] = 88; chunk[7] = 116;
+  chunk.set(keyBytes, 8);
+  chunk[8 + keyBytes.length] = 0;
+  chunk.set(textBytes, 8 + keyBytes.length + 1);
+  const crc = crc32(chunk.subarray(4, 8 + dataLen));
+  view.setUint32(8 + dataLen, crc, false);
+  const iendPos = pngUint8.length - 12;
+  const out = new Uint8Array(pngUint8.length + chunk.length);
+  out.set(pngUint8.subarray(0, iendPos), 0);
+  out.set(chunk, iendPos);
+  out.set(pngUint8.subarray(iendPos), iendPos + chunk.length);
+  return out;
+}
+
+$("dlCardPng").addEventListener("click", () => {
+  syncEdits();
+  const canvas = document.createElement("canvas");
+  canvas.width = 480;
+  canvas.height = 680;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createLinearGradient(0, 0, 480, 680);
+  grad.addColorStop(0, "#2b1e34");
+  grad.addColorStop(0.5, "#18131f");
+  grad.addColorStop(1, "#3b2436");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 480, 680);
+  ctx.strokeStyle = "#f3a1c566";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(18, 18, 444, 644);
+  ctx.fillStyle = "#f5c2e7";
+  ctx.font = "bold 36px 'Microsoft YaHei', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(currentCardV2.data.name, 240, 290);
+  ctx.fillStyle = "#cba6f7";
+  ctx.font = "16px 'Microsoft YaHei', sans-serif";
+  ctx.fillText("SillyTavern V2 Character Card", 240, 340);
+  ctx.fillStyle = "#a6adc8";
+  ctx.font = "13px sans-serif";
+  ctx.fillText("Powered by Fengyue2ST Universal Converter", 240, 620);
+
+  canvas.toBlob(async blob => {
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    const jsonStr = JSON.stringify(currentCardV2);
+    const utf8Bytes = new TextEncoder().encode(jsonStr);
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < utf8Bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, utf8Bytes.subarray(i, i + chunkSize));
+    }
+    const base64Data = btoa(binary);
+    const finalPng = writePngTextChunk(buf, "chara", base64Data);
+    const pngBlob = new Blob([finalPng], { type: "image/png" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(pngBlob);
+    a.download = `${currentCardV2.data.name}_ST角色卡.png`;
+    a.click();
+  }, "image/png");
+});
+</script>
+</body>
+</html>
